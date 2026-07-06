@@ -144,9 +144,9 @@
     display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text-dim);cursor:pointer;flex-shrink:0;}
   .card2-add.done{border-style:solid;background:var(--success);border-color:var(--success);color:#fff;}
   .mini-heat-wrap{position:relative;padding:2px 12px 12px;}
-  .mini-heat-grid{display:flex;gap:2px;overflow-x:auto;}
-  .mini-heat-week{display:flex;flex-direction:column;gap:2px;}
-  .mini-heat-day{width:7px;height:7px;border-radius:1.5px;cursor:pointer;}
+  .mini-heat-grid{display:flex;gap:2px;width:100%;}
+  .mini-heat-week{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
+  .mini-heat-day{width:100%;aspect-ratio:1;border-radius:1.5px;cursor:pointer;}
   .mini-heat-expand{position:absolute;top:-2px;right:10px;font-size:12px;color:var(--text-dim);cursor:pointer;
     background:var(--card);border-radius:6px;padding:2px 5px;opacity:0.8;}
 
@@ -261,6 +261,15 @@
     <div class="card">
       <h3 style="margin:0 0 10px;font-size:16px;">Habits &amp; Trackers by Cycle Day</h3>
       <div class="cycle-habit-grid-wrap" id="cycleHabitGridWrap"></div>
+    </div>
+
+    <div class="card">
+      <div class="cal-header">
+        <button class="icon-btn" id="calPrevBtn" style="width:34px;height:34px;font-size:15px;">‹</button>
+        <h3 id="calMonthLabel">Month</h3>
+        <button class="icon-btn" id="calNextBtn" style="width:34px;height:34px;font-size:15px;">›</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
     </div>
   </section>
 
@@ -598,6 +607,7 @@
     renderHabitsList();
     renderStats();
     renderYearHeatmap();
+    renderCalendarMonth();
     renderCycleSection();
     renderCycleHabitGrid();
     renderTrackers();
@@ -824,6 +834,42 @@
     save();
     closeMetricModal();
     renderAll();
+  }
+
+  // ---------- Month calendar (Calendar tab, pick any past/future date) ----------
+  function renderCalendarMonth(){
+    var grid = document.getElementById('calGrid');
+    var label = document.getElementById('calMonthLabel');
+    if(!grid || !label) return;
+    label.textContent = calMonth.toLocaleDateString(undefined,{month:'long', year:'numeric'});
+
+    var year = calMonth.getFullYear(), month = calMonth.getMonth();
+    var firstOfMonth = new Date(year, month, 1);
+    var gridStart = startOfWeek(firstOfMonth);
+    var today = new Date(); today.setHours(0,0,0,0);
+    var todayStrVal = toDateStr(today);
+    var habits = activeHabits();
+    var metrics = activeMetrics();
+
+    var dowLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    var html = dowLabels.map(function(l){ return '<div class="cal-dow">'+l+'</div>'; }).join('');
+
+    var cursor = new Date(gridStart);
+    for(var i=0; i<42; i++){
+      var ds = toDateStr(cursor);
+      var inMonth = cursor.getMonth() === month;
+      var isToday = ds === todayStrVal;
+      var hasLog = habits.some(function(h){ return getCount(h.id, ds) > 0; }) ||
+        metrics.some(function(m){ return getMetricValue(m.id, ds) !== null; });
+      html += '<div class="cal-day'+(inMonth?'':' other-month')+(isToday?' today':'')+'" data-date="'+ds+'">' +
+        cursor.getDate() + (hasLog ? '<span class="dot"></span>' : '') +
+      '</div>';
+      cursor = addDays(cursor, 1);
+    }
+    grid.innerHTML = html;
+    grid.querySelectorAll('.cal-day[data-date]').forEach(function(cell){
+      cell.addEventListener('click', function(){ openDayModal(cell.getAttribute('data-date')); });
+    });
   }
 
   // ---------- Menstrual cycle ----------
@@ -1096,9 +1142,9 @@
     var count = getCount(habit.id, ds);
     if(count <= 0) return 0;
     var ratio = count / habit.freqTarget;
-    if(ratio < 0.5) return 1;
-    if(ratio < 1) return 2;
-    if(ratio === 1) return 3;
+    if(ratio < 0.34) return 1;
+    if(ratio < 0.67) return 2;
+    if(ratio < 1) return 3;
     return 4;
   }
 
@@ -1551,6 +1597,15 @@
 
   document.getElementById('themeToggle').addEventListener('click', function(){
     state.darkMode = !state.darkMode; save(); applyTheme();
+  });
+
+  document.getElementById('calPrevBtn').addEventListener('click', function(){
+    calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()-1, 1);
+    renderCalendarMonth();
+  });
+  document.getElementById('calNextBtn').addEventListener('click', function(){
+    calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+1, 1);
+    renderCalendarMonth();
   });
 
   document.getElementById('addHabitFab').addEventListener('click', function(e){
