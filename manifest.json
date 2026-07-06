@@ -1,6 +1,6 @@
 {
-  "name": "Habit Tracker",
-  "short_name": "Habits",
+  "name": "HabitRabbit",
+  "short_name": "HabitRabbit",
   "description": "Track daily, weekly, monthly and yearly habits, plus weight and other measurements.",
   "start_url": "./index.html",
   "scope": "./",
