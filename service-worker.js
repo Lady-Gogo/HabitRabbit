@@ -1,6 +1,6 @@
 // Simple offline-first cache for the Habit Tracker PWA.
 // Bump CACHE_NAME whenever index.html changes so users get the update.
-var CACHE_NAME = 'habit-tracker-v4';
+var CACHE_NAME = 'habit-tracker-v5';
 var APP_SHELL = [
   './',
   './index.html',
