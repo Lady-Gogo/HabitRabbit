@@ -74,9 +74,15 @@
   @media (min-width:700px){ .modal-backdrop{align-items:center;} .modal{border-radius:20px;} }
   .modal h2{margin:0 0 14px;font-size:18px;}
   label.field-label{display:block;font-size:12px;font-weight:600;color:var(--text-dim);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.03em;}
-  input[type=text], input[type=number], input[type=date], select{
+  input[type=text], input[type=number], input[type=date], select, textarea{
     width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--border);background:var(--card);
     color:var(--text);font-size:15px;}
+  textarea{font-family:inherit;resize:vertical;}
+  .rotation-override-grid{display:flex;flex-direction:column;gap:6px;}
+  .rotation-override-row{display:flex;align-items:center;gap:8px;}
+  .rotation-override-row .rov-day{width:38px;flex-shrink:0;font-size:12px;font-weight:700;color:var(--text-dim);}
+  .rotation-override-row input{padding:8px 10px;font-size:13px;}
+  .rotation-task{padding:0 12px 10px;font-size:12.5px;color:var(--text-dim);margin-top:-6px;}
   .emoji-grid{display:flex;flex-wrap:wrap;gap:8px;}
   .emoji-opt, .color-opt{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
     font-size:18px;cursor:pointer;border:2px solid transparent;background:var(--track);}
@@ -378,6 +384,16 @@
       <option value="km">km</option>
     </select>
 
+    <label class="field-label" style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:normal;">
+      <input type="checkbox" id="habitRotationEnabled" style="width:auto;"> Rotate a different daily task
+    </label>
+    <div id="rotationFields" style="display:none;">
+      <label class="field-label">Tasks (one per line)</label>
+      <textarea id="habitRotationTasks" rows="5" placeholder="Dust Living / Music Room + Water plants&#10;Clean a bathroom&#10;Clean upstairs bedroom&#10;Organize clothes&#10;Pick-up outside&#10;Organize part of basement"></textarea>
+      <label class="field-label">Day overrides <span style="text-transform:none;font-weight:400;">(optional — leave blank to use rotation)</span></label>
+      <div class="rotation-override-grid" id="rotationOverridesGrid"></div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn secondary" id="habitCancelBtn">Cancel</button>
       <button class="btn danger" id="habitDeleteBtn" style="display:none;">Delete</button>
@@ -558,6 +574,32 @@
     if(habit.freqType === 'weekly') return t + '× weekly';
     if(habit.freqType === 'monthly') return t + '× monthly';
     return t + '× yearly';
+  }
+
+  // ---------- Rotating daily task (e.g. a chore that changes each day) ----------
+  var DOW_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function hashStr(s){
+    var h = 0;
+    for(var i=0; i<s.length; i++){ h = (h*31 + s.charCodeAt(i)) | 0; }
+    return Math.abs(h);
+  }
+  function getRotatingTask(habit, date){
+    if(!habit.rotationEnabled || !habit.rotationTasks || habit.rotationTasks.length === 0) return null;
+    var dow = date.getDay();
+    if(habit.rotationOverrides && habit.rotationOverrides[dow]) return habit.rotationOverrides[dow];
+    var idx = hashStr(toDateStr(date) + '_' + habit.id) % habit.rotationTasks.length;
+    return habit.rotationTasks[idx];
+  }
+  function renderRotationOverridesGrid(overrides){
+    var el = document.getElementById('rotationOverridesGrid');
+    if(!el) return;
+    overrides = overrides || {};
+    el.innerHTML = DOW_LABELS.map(function(lbl, i){
+      return '<div class="rotation-override-row">' +
+        '<span class="rov-day">'+lbl+'</span>' +
+        '<input type="text" data-override-day="'+i+'" placeholder="Use rotation" value="'+escapeHtml(overrides[i] || '')+'">' +
+      '</div>';
+    }).join('');
   }
 
   // ---------- Constants ----------
@@ -1176,6 +1218,7 @@
     var streaks = getStreaks(habit);
     var done = count >= habit.freqTarget;
     var yearData = buildYearWeeks();
+    var todayTask = getRotatingTask(habit, new Date());
     return '<div class="habit-card2" data-habit-id="'+habit.id+'">' +
       '<div class="habit-card2-top">' +
         '<div class="card2-left">' +
@@ -1187,6 +1230,7 @@
           '<button class="card2-add '+(done?'done':'')+'" data-log-habit="'+habit.id+'">'+(done?'✓':'+')+'</button>' +
         '</div>' +
       '</div>' +
+      (todayTask ? '<div class="rotation-task">🔀 '+escapeHtml(todayTask)+'</div>' : '') +
       '<div class="mini-heat-wrap">' +
         '<span class="mini-heat-expand" data-expand-habit="'+habit.id+'">⤢</span>' +
         '<div class="mini-heat-grid">'+renderMiniHeatmap(habit, yearData)+'</div>' +
@@ -1277,7 +1321,7 @@
           '<div class="habit-emoji" style="background:'+h.color+'22;">'+h.emoji+'</div>' +
           '<div class="habit-main">' +
             '<div class="habit-name">'+escapeHtml(h.name)+' '+(h.archived?'<span class="archived-tag">Archived</span>':'')+'</div>' +
-            '<div class="habit-meta"><span>'+freqLabel(h)+'</span></div>' +
+            '<div class="habit-meta"><span>'+freqLabel(h)+'</span>'+(h.rotationEnabled?' <span>&middot; 🔀 rotates daily</span>':'')+'</div>' +
           '</div>' +
           '<span class="swipe">›</span>' +
         '</div>' +
@@ -1457,10 +1501,11 @@
     habits.forEach(function(h){
       var count = getCount(h.id, dayModalDate);
       var done = count >= h.freqTarget;
+      var task = getRotatingTask(h, fromDateStr(dayModalDate));
       html += '<div class="habit-row">' +
         '<div class="habit-emoji" style="background:'+h.color+'22;">'+h.emoji+'</div>' +
         '<div class="habit-main"><div class="habit-name">'+escapeHtml(h.name)+'</div>' +
-        '<div class="habit-meta">'+count+'/'+h.freqTarget+' '+unitLabel(h.unit, h.freqTarget)+'</div></div>' +
+        '<div class="habit-meta">'+count+'/'+h.freqTarget+' '+unitLabel(h.unit, h.freqTarget)+(task?' &middot; 🔀 '+escapeHtml(task):'')+'</div></div>' +
         '<button class="check-btn '+(done?'done':'')+'" data-day-log="'+h.id+'">'+(done?'✓':'+')+'</button>' +
       '</div>';
     });
@@ -1504,6 +1549,11 @@
     selectedColor = h ? h.color : COLORS[0];
     document.getElementById('habitDeleteBtn').style.display = h ? 'block' : 'none';
     document.getElementById('suggestRow').style.display = h ? 'none' : 'flex';
+    var rotationOn = h ? !!h.rotationEnabled : false;
+    document.getElementById('habitRotationEnabled').checked = rotationOn;
+    document.getElementById('rotationFields').style.display = rotationOn ? 'block' : 'none';
+    document.getElementById('habitRotationTasks').value = (h && h.rotationTasks) ? h.rotationTasks.join('\n') : '';
+    renderRotationOverridesGrid(h ? h.rotationOverrides : null);
     renderEmojiGrid();
     renderColorGrid();
     document.getElementById('habitModalBackdrop').classList.add('show');
@@ -1544,19 +1594,35 @@
     });
   }
 
+  function readRotationFieldsFromForm(){
+    var enabled = document.getElementById('habitRotationEnabled').checked;
+    if(!enabled) return { rotationEnabled: false, rotationTasks: [], rotationOverrides: {} };
+    var tasks = document.getElementById('habitRotationTasks').value.split('\n')
+      .map(function(t){ return t.trim(); }).filter(function(t){ return t.length > 0; });
+    var overrides = {};
+    document.querySelectorAll('#rotationOverridesGrid [data-override-day]').forEach(function(input){
+      var v = input.value.trim();
+      if(v) overrides[input.getAttribute('data-override-day')] = v;
+    });
+    return { rotationEnabled: tasks.length > 0, rotationTasks: tasks, rotationOverrides: overrides };
+  }
+
   function saveHabit(){
     var name = document.getElementById('habitName').value.trim();
     if(!name){ alert('Please enter a habit name.'); return; }
     var freqType = document.getElementById('habitFreqType').value;
     var target = Math.max(1, parseInt(document.getElementById('habitTarget').value,10) || 1);
     var unit = document.getElementById('habitUnit').value;
+    var rotation = readRotationFieldsFromForm();
     if(editingHabitId){
       var h = state.habits.find(function(x){return x.id===editingHabitId;});
       h.name = name; h.emoji = selectedEmoji; h.color = selectedColor; h.freqType = freqType; h.freqTarget = target; h.unit = unit;
+      h.rotationEnabled = rotation.rotationEnabled; h.rotationTasks = rotation.rotationTasks; h.rotationOverrides = rotation.rotationOverrides;
     } else {
       state.habits.push({
         id: uid(), name: name, emoji: selectedEmoji, color: selectedColor,
-        freqType: freqType, freqTarget: target, unit: unit, createdAt: todayStr(), archived: false
+        freqType: freqType, freqTarget: target, unit: unit, createdAt: todayStr(), archived: false,
+        rotationEnabled: rotation.rotationEnabled, rotationTasks: rotation.rotationTasks, rotationOverrides: rotation.rotationOverrides
       });
     }
     save();
@@ -1631,6 +1697,12 @@
   document.getElementById('habitCancelBtn').addEventListener('click', closeHabitModal);
   document.getElementById('habitSaveBtn').addEventListener('click', saveHabit);
   document.getElementById('habitDeleteBtn').addEventListener('click', deleteHabit);
+  document.getElementById('habitRotationEnabled').addEventListener('change', function(){
+    document.getElementById('rotationFields').style.display = this.checked ? 'block' : 'none';
+    if(this.checked && !document.getElementById('rotationOverridesGrid').innerHTML){
+      renderRotationOverridesGrid(null);
+    }
+  });
   document.getElementById('habitModalBackdrop').addEventListener('click', function(e){
     if(e.target === this) closeHabitModal();
   });
