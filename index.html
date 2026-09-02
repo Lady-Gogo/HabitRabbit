@@ -200,13 +200,17 @@
       <h1>HabitRabbit</h1>
       <div class="date-sub" id="todayLabel"></div>
     </div>
-    <button class="icon-btn" id="themeToggle">🌙</button>
+    <div style="display:flex;gap:8px;">
+      <button class="icon-btn" id="inspBtn" aria-label="Insp" title="Insp">✨</button>
+      <button class="icon-btn" id="themeToggle">🌙</button>
+    </div>
   </header>
 
   <nav class="tabs">
     <button data-view="today" class="active">Today</button>
     <button data-view="calendar">Calendar</button>
     <button data-view="habits">Habits</button>
+    <button data-view="measurements">Measure</button>
     <button data-view="stats">Stats</button>
   </nav>
 
@@ -282,6 +286,11 @@
   <section class="view" id="view-habits">
     <div id="habitsList"></div>
     <div id="metricsListSection"></div>
+  </section>
+
+  <section class="view" id="view-measurements">
+    <h3 style="margin:4px 0 10px;font-size:16px;">Body Measurements</h3>
+    <div id="measurementsContainer"></div>
   </section>
 
   <section class="view" id="view-stats">
@@ -409,6 +418,17 @@
     <div class="day-modal-list" id="dayModalList"></div>
     <div class="modal-actions">
       <button class="btn secondary" id="dayCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Insp Modal -->
+<div class="modal-backdrop" id="inspModalBackdrop">
+  <div class="modal" style="padding:14px;">
+    <img id="inspImage" src="" alt="Inspiration" style="width:100%;border-radius:14px;display:block;background:var(--track);min-height:120px;object-fit:contain;">
+    <div class="modal-actions">
+      <button class="btn secondary" id="inspCloseBtn">Close</button>
+      <button class="btn primary" id="inspShuffleBtn">🔀 New</button>
     </div>
   </div>
 </div>
@@ -622,6 +642,55 @@
     {name:'Cook at Home', emoji:'🥗'}, {name:'Steps', emoji:'🚶'}, {name:'Quit Social Media', emoji:'📵'}
   ];
 
+  // ---------- Body measurements (fixed set, own tab) ----------
+  var BODY_MEASUREMENTS = [
+    {key:'bust', name:'Bust', color:'#7c5cff'},
+    {key:'ribs', name:'Ribs', color:'#4dabf7'},
+    {key:'waist', name:'Waist', color:'#38d9a9'},
+    {key:'hips', name:'Hips', color:'#ff6b6b'}
+  ];
+  function ensureBodyMeasurements(){
+    var changed = false;
+    BODY_MEASUREMENTS.forEach(function(bm){
+      var id = 'bm_' + bm.key;
+      if(!state.metrics.some(function(m){ return m.id === id; })){
+        state.metrics.push({ id:id, name:bm.name, unit:'in', color:bm.color, createdAt: todayStr(), archived:false, bodyMeasurement:true });
+        changed = true;
+      }
+    });
+    if(changed) save();
+  }
+
+  // ---------- Insp: random image from the insp/ folder ----------
+  var INSP_IMAGES = [
+    'Screenshot 2026-08-18 071733.png',
+    'Screenshot 2026-08-18 072343.png',
+    'Screenshot 2026-08-18 072520.png',
+    'Screenshot 2026-08-18 072615.png',
+    'Screenshot 2026-08-18 075216.png',
+    'Screenshot 2026-08-18 075452.png'
+  ];
+  var lastInspIndex = -1;
+  function pickInspImage(){
+    if(INSP_IMAGES.length === 0) return null;
+    var idx = Math.floor(Math.random() * INSP_IMAGES.length);
+    if(INSP_IMAGES.length > 1 && idx === lastInspIndex){
+      idx = (idx + 1) % INSP_IMAGES.length;
+    }
+    lastInspIndex = idx;
+    return INSP_IMAGES[idx];
+  }
+  function showRandomInsp(){
+    var file = pickInspImage();
+    var img = document.getElementById('inspImage');
+    if(!file){ img.removeAttribute('src'); return; }
+    img.src = 'insp/' + encodeURIComponent(file);
+  }
+  function openInspModal(){
+    showRandomInsp();
+    document.getElementById('inspModalBackdrop').classList.add('show');
+  }
+
   function unitLabel(unitId, target){
     var u = UNITS.filter(function(x){ return x.id === unitId; })[0] || UNITS[0];
     return target === 1 ? u.singular : u.plural;
@@ -655,10 +724,16 @@
     renderTrackers();
     renderTrackerStats();
     renderMetricsList();
+    renderMeasurementsTab();
   }
 
   // ---------- Metric / measurement trackers (e.g. Weight) ----------
-  function activeMetrics(){ return state.metrics.filter(function(m){ return !m.archived; }); }
+  function activeMetrics(){ return state.metrics.filter(function(m){ return !m.archived && !m.bodyMeasurement; }); }
+  function activeBodyMeasurements(){
+    return BODY_MEASUREMENTS.map(function(bm){
+      return state.metrics.find(function(m){ return m.id === 'bm_'+bm.key && !m.archived; });
+    }).filter(Boolean);
+  }
 
   function getMetricValue(metricId, dateStr){
     var m = state.metricLogs[metricId];
@@ -762,6 +837,47 @@
     container.querySelectorAll('[data-open-metric]').forEach(function(pill){
       pill.addEventListener('click', function(){ openMetricModal(pill.getAttribute('data-open-metric')); });
     });
+  }
+
+  function renderMeasurementCard(metric){
+    var entries = getMetricEntries(metric.id);
+    var todayVal = getMetricValue(metric.id, todayStr());
+    var latest = entries.length ? entries[entries.length-1] : null;
+    var first = entries.length ? entries[0] : null;
+    var values = entries.map(function(e){ return e.value; });
+    var minV = values.length ? Math.min.apply(null, values) : null;
+    var maxV = values.length ? Math.max.apply(null, values) : null;
+    var change = (latest && first && entries.length>1) ? (latest.value - first.value) : null;
+    return '<div class="habit-card2" data-metric-id="'+metric.id+'">' +
+      '<div class="habit-card2-top">' +
+        '<div class="card2-left">' +
+          '<div class="habit-pill" style="background:'+metric.color+';color:'+textColorFor(metric.color)+';" data-open-metric="'+metric.id+'">'+escapeHtml(metric.name)+'</div>' +
+        '</div>' +
+        '<div class="card2-right">' +
+          '<div class="card2-progress">'+(latest ? latest.value+' '+escapeHtml(metric.unit) : 'No data')+'</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="metric-log-row">' +
+        '<input type="date" value="'+todayStr()+'" data-metric-date="'+metric.id+'">' +
+        '<input type="number" step="any" inputmode="decimal" placeholder="'+escapeHtml(metric.unit)+'" ' +
+          'value="'+(todayVal!==null?todayVal:'')+'" data-metric-input="'+metric.id+'">' +
+        '<button class="btn primary" data-metric-save="'+metric.id+'">Save</button>' +
+      '</div>' +
+      '<div class="metric-chart-wrap">'+renderMetricChart(metric, entries, 640, 120)+'</div>' +
+      (entries.length ? ('<div class="metric-stat-row">' +
+        '<span>Min <b>'+minV+' '+escapeHtml(metric.unit)+'</b></span>' +
+        '<span>Max <b>'+maxV+' '+escapeHtml(metric.unit)+'</b></span>' +
+        (change!==null ? '<span>Change <b>'+(change>0?'+':'')+change.toFixed(1)+' '+escapeHtml(metric.unit)+'</b></span>' : '') +
+      '</div>') : '') +
+    '</div>';
+  }
+
+  function renderMeasurementsTab(){
+    var el = document.getElementById('measurementsContainer');
+    if(!el) return;
+    var metrics = activeBodyMeasurements();
+    el.innerHTML = metrics.map(renderMeasurementCard).join('');
+    wireTrackerCardEvents(el);
   }
 
   function renderTrackers(){
@@ -891,7 +1007,7 @@
     var today = new Date(); today.setHours(0,0,0,0);
     var todayStrVal = toDateStr(today);
     var habits = activeHabits();
-    var metrics = activeMetrics();
+    var metrics = state.metrics.filter(function(m){ return !m.archived; });
 
     var dowLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     var html = dowLabels.map(function(l){ return '<div class="cal-dow">'+l+'</div>'; }).join('');
@@ -1721,6 +1837,15 @@
     if(e.target === this) this.classList.remove('show');
   });
 
+  document.getElementById('inspBtn').addEventListener('click', openInspModal);
+  document.getElementById('inspShuffleBtn').addEventListener('click', showRandomInsp);
+  document.getElementById('inspCloseBtn').addEventListener('click', function(){
+    document.getElementById('inspModalBackdrop').classList.remove('show');
+  });
+  document.getElementById('inspModalBackdrop').addEventListener('click', function(e){
+    if(e.target === this) this.classList.remove('show');
+  });
+
   document.getElementById('heatmapHabitSelect').addEventListener('change', renderYearHeatmap);
 
   document.getElementById('dailySectionHeader').addEventListener('click', function(){
@@ -1761,6 +1886,7 @@
   });
 
   // ---------- Init ----------
+  ensureBodyMeasurements();
   renderSuggestRow();
   applyTheme();
   renderAll();
