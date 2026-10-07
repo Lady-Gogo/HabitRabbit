@@ -74,15 +74,9 @@
   @media (min-width:700px){ .modal-backdrop{align-items:center;} .modal{border-radius:20px;} }
   .modal h2{margin:0 0 14px;font-size:18px;}
   label.field-label{display:block;font-size:12px;font-weight:600;color:var(--text-dim);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.03em;}
-  input[type=text], input[type=number], input[type=date], select, textarea{
+  input[type=text], input[type=number], input[type=date], select{
     width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--border);background:var(--card);
     color:var(--text);font-size:15px;}
-  textarea{font-family:inherit;resize:vertical;}
-  .rotation-override-grid{display:flex;flex-direction:column;gap:6px;}
-  .rotation-override-row{display:flex;align-items:center;gap:8px;}
-  .rotation-override-row .rov-day{width:38px;flex-shrink:0;font-size:12px;font-weight:700;color:var(--text-dim);}
-  .rotation-override-row input{padding:8px 10px;font-size:13px;}
-  .rotation-task{padding:0 12px 10px;font-size:12.5px;color:var(--text-dim);margin-top:-6px;}
   .emoji-grid{display:flex;flex-wrap:wrap;gap:8px;}
   .emoji-opt, .color-opt{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
     font-size:18px;cursor:pointer;border:2px solid transparent;background:var(--track);}
@@ -150,9 +144,9 @@
     display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text-dim);cursor:pointer;flex-shrink:0;}
   .card2-add.done{border-style:solid;background:var(--success);border-color:var(--success);color:#fff;}
   .mini-heat-wrap{position:relative;padding:2px 12px 12px;}
-  .mini-heat-grid{display:flex;gap:2px;width:100%;}
-  .mini-heat-week{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
-  .mini-heat-day{width:100%;aspect-ratio:1;border-radius:1.5px;cursor:pointer;}
+  .mini-heat-grid{display:flex;gap:2px;overflow-x:auto;}
+  .mini-heat-week{display:flex;flex-direction:column;gap:2px;}
+  .mini-heat-day{width:7px;height:7px;border-radius:1.5px;cursor:pointer;}
   .mini-heat-expand{position:absolute;top:-2px;right:10px;font-size:12px;color:var(--text-dim);cursor:pointer;
     background:var(--card);border-radius:6px;padding:2px 5px;opacity:0.8;}
 
@@ -200,17 +194,13 @@
       <h1>HabitRabbit</h1>
       <div class="date-sub" id="todayLabel"></div>
     </div>
-    <div style="display:flex;gap:8px;">
-      <button class="icon-btn" id="inspBtn" aria-label="Insp" title="Insp">✨</button>
-      <button class="icon-btn" id="themeToggle">🌙</button>
-    </div>
+    <button class="icon-btn" id="themeToggle">🌙</button>
   </header>
 
   <nav class="tabs">
     <button data-view="today" class="active">Today</button>
     <button data-view="calendar">Calendar</button>
     <button data-view="habits">Habits</button>
-    <button data-view="measurements">Measure</button>
     <button data-view="stats">Stats</button>
   </nav>
 
@@ -272,25 +262,11 @@
       <h3 style="margin:0 0 10px;font-size:16px;">Habits &amp; Trackers by Cycle Day</h3>
       <div class="cycle-habit-grid-wrap" id="cycleHabitGridWrap"></div>
     </div>
-
-    <div class="card">
-      <div class="cal-header">
-        <button class="icon-btn" id="calPrevBtn" style="width:34px;height:34px;font-size:15px;">‹</button>
-        <h3 id="calMonthLabel">Month</h3>
-        <button class="icon-btn" id="calNextBtn" style="width:34px;height:34px;font-size:15px;">›</button>
-      </div>
-      <div class="cal-grid" id="calGrid"></div>
-    </div>
   </section>
 
   <section class="view" id="view-habits">
     <div id="habitsList"></div>
     <div id="metricsListSection"></div>
-  </section>
-
-  <section class="view" id="view-measurements">
-    <h3 style="margin:4px 0 10px;font-size:16px;">Body Measurements</h3>
-    <div id="measurementsContainer"></div>
   </section>
 
   <section class="view" id="view-stats">
@@ -393,16 +369,6 @@
       <option value="km">km</option>
     </select>
 
-    <label class="field-label" style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:normal;">
-      <input type="checkbox" id="habitRotationEnabled" style="width:auto;"> Rotate a different daily task
-    </label>
-    <div id="rotationFields" style="display:none;">
-      <label class="field-label">Tasks (one per line)</label>
-      <textarea id="habitRotationTasks" rows="5" placeholder="Dust Living / Music Room + Water plants&#10;Clean a bathroom&#10;Clean upstairs bedroom&#10;Organize clothes&#10;Pick-up outside&#10;Organize part of basement"></textarea>
-      <label class="field-label">Day overrides <span style="text-transform:none;font-weight:400;">(optional — leave blank to use rotation)</span></label>
-      <div class="rotation-override-grid" id="rotationOverridesGrid"></div>
-    </div>
-
     <div class="modal-actions">
       <button class="btn secondary" id="habitCancelBtn">Cancel</button>
       <button class="btn danger" id="habitDeleteBtn" style="display:none;">Delete</button>
@@ -418,17 +384,6 @@
     <div class="day-modal-list" id="dayModalList"></div>
     <div class="modal-actions">
       <button class="btn secondary" id="dayCloseBtn">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- Insp Modal -->
-<div class="modal-backdrop" id="inspModalBackdrop">
-  <div class="modal" style="padding:14px;">
-    <img id="inspImage" src="" alt="Inspiration" style="width:100%;border-radius:14px;display:block;background:var(--track);min-height:120px;object-fit:contain;">
-    <div class="modal-actions">
-      <button class="btn secondary" id="inspCloseBtn">Close</button>
-      <button class="btn primary" id="inspShuffleBtn">🔀 New</button>
     </div>
   </div>
 </div>
@@ -596,32 +551,6 @@
     return t + '× yearly';
   }
 
-  // ---------- Rotating daily task (e.g. a chore that changes each day) ----------
-  var DOW_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  function hashStr(s){
-    var h = 0;
-    for(var i=0; i<s.length; i++){ h = (h*31 + s.charCodeAt(i)) | 0; }
-    return Math.abs(h);
-  }
-  function getRotatingTask(habit, date){
-    if(!habit.rotationEnabled || !habit.rotationTasks || habit.rotationTasks.length === 0) return null;
-    var dow = date.getDay();
-    if(habit.rotationOverrides && habit.rotationOverrides[dow]) return habit.rotationOverrides[dow];
-    var idx = hashStr(toDateStr(date) + '_' + habit.id) % habit.rotationTasks.length;
-    return habit.rotationTasks[idx];
-  }
-  function renderRotationOverridesGrid(overrides){
-    var el = document.getElementById('rotationOverridesGrid');
-    if(!el) return;
-    overrides = overrides || {};
-    el.innerHTML = DOW_LABELS.map(function(lbl, i){
-      return '<div class="rotation-override-row">' +
-        '<span class="rov-day">'+lbl+'</span>' +
-        '<input type="text" data-override-day="'+i+'" placeholder="Use rotation" value="'+escapeHtml(overrides[i] || '')+'">' +
-      '</div>';
-    }).join('');
-  }
-
   // ---------- Constants ----------
   var EMOJIS = ['💧','🏃','📖','🧘','✍️','💊','🚭','🛌','🥗','💪','🦷','🚴','🎨','🌞','🙏','😴','🚶','🎯','💰','📵'];
   var COLORS = ['#7c5cff','#ff6b6b','#ffa94d','#ffd43b','#51cf66','#38d9a9','#4dabf7','#f783ac'];
@@ -641,55 +570,6 @@
     {name:'Wake Up Early', emoji:'🌞'}, {name:'Quit Smoking', emoji:'🚭'}, {name:'Brush Teeth', emoji:'🦷'},
     {name:'Cook at Home', emoji:'🥗'}, {name:'Steps', emoji:'🚶'}, {name:'Quit Social Media', emoji:'📵'}
   ];
-
-  // ---------- Body measurements (fixed set, own tab) ----------
-  var BODY_MEASUREMENTS = [
-    {key:'bust', name:'Bust', color:'#7c5cff'},
-    {key:'ribs', name:'Ribs', color:'#4dabf7'},
-    {key:'waist', name:'Waist', color:'#38d9a9'},
-    {key:'hips', name:'Hips', color:'#ff6b6b'}
-  ];
-  function ensureBodyMeasurements(){
-    var changed = false;
-    BODY_MEASUREMENTS.forEach(function(bm){
-      var id = 'bm_' + bm.key;
-      if(!state.metrics.some(function(m){ return m.id === id; })){
-        state.metrics.push({ id:id, name:bm.name, unit:'in', color:bm.color, createdAt: todayStr(), archived:false, bodyMeasurement:true });
-        changed = true;
-      }
-    });
-    if(changed) save();
-  }
-
-  // ---------- Insp: random image from the insp/ folder ----------
-  var INSP_IMAGES = [
-    'Screenshot 2026-08-18 071733.png',
-    'Screenshot 2026-08-18 072343.png',
-    'Screenshot 2026-08-18 072520.png',
-    'Screenshot 2026-08-18 072615.png',
-    'Screenshot 2026-08-18 075216.png',
-    'Screenshot 2026-08-18 075452.png'
-  ];
-  var lastInspIndex = -1;
-  function pickInspImage(){
-    if(INSP_IMAGES.length === 0) return null;
-    var idx = Math.floor(Math.random() * INSP_IMAGES.length);
-    if(INSP_IMAGES.length > 1 && idx === lastInspIndex){
-      idx = (idx + 1) % INSP_IMAGES.length;
-    }
-    lastInspIndex = idx;
-    return INSP_IMAGES[idx];
-  }
-  function showRandomInsp(){
-    var file = pickInspImage();
-    var img = document.getElementById('inspImage');
-    if(!file){ img.removeAttribute('src'); return; }
-    img.src = 'insp/' + encodeURIComponent(file);
-  }
-  function openInspModal(){
-    showRandomInsp();
-    document.getElementById('inspModalBackdrop').classList.add('show');
-  }
 
   function unitLabel(unitId, target){
     var u = UNITS.filter(function(x){ return x.id === unitId; })[0] || UNITS[0];
@@ -718,22 +598,15 @@
     renderHabitsList();
     renderStats();
     renderYearHeatmap();
-    renderCalendarMonth();
     renderCycleSection();
     renderCycleHabitGrid();
     renderTrackers();
     renderTrackerStats();
     renderMetricsList();
-    renderMeasurementsTab();
   }
 
   // ---------- Metric / measurement trackers (e.g. Weight) ----------
-  function activeMetrics(){ return state.metrics.filter(function(m){ return !m.archived && !m.bodyMeasurement; }); }
-  function activeBodyMeasurements(){
-    return BODY_MEASUREMENTS.map(function(bm){
-      return state.metrics.find(function(m){ return m.id === 'bm_'+bm.key && !m.archived; });
-    }).filter(Boolean);
-  }
+  function activeMetrics(){ return state.metrics.filter(function(m){ return !m.archived; }); }
 
   function getMetricValue(metricId, dateStr){
     var m = state.metricLogs[metricId];
@@ -837,47 +710,6 @@
     container.querySelectorAll('[data-open-metric]').forEach(function(pill){
       pill.addEventListener('click', function(){ openMetricModal(pill.getAttribute('data-open-metric')); });
     });
-  }
-
-  function renderMeasurementCard(metric){
-    var entries = getMetricEntries(metric.id);
-    var todayVal = getMetricValue(metric.id, todayStr());
-    var latest = entries.length ? entries[entries.length-1] : null;
-    var first = entries.length ? entries[0] : null;
-    var values = entries.map(function(e){ return e.value; });
-    var minV = values.length ? Math.min.apply(null, values) : null;
-    var maxV = values.length ? Math.max.apply(null, values) : null;
-    var change = (latest && first && entries.length>1) ? (latest.value - first.value) : null;
-    return '<div class="habit-card2" data-metric-id="'+metric.id+'">' +
-      '<div class="habit-card2-top">' +
-        '<div class="card2-left">' +
-          '<div class="habit-pill" style="background:'+metric.color+';color:'+textColorFor(metric.color)+';" data-open-metric="'+metric.id+'">'+escapeHtml(metric.name)+'</div>' +
-        '</div>' +
-        '<div class="card2-right">' +
-          '<div class="card2-progress">'+(latest ? latest.value+' '+escapeHtml(metric.unit) : 'No data')+'</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="metric-log-row">' +
-        '<input type="date" value="'+todayStr()+'" data-metric-date="'+metric.id+'">' +
-        '<input type="number" step="any" inputmode="decimal" placeholder="'+escapeHtml(metric.unit)+'" ' +
-          'value="'+(todayVal!==null?todayVal:'')+'" data-metric-input="'+metric.id+'">' +
-        '<button class="btn primary" data-metric-save="'+metric.id+'">Save</button>' +
-      '</div>' +
-      '<div class="metric-chart-wrap">'+renderMetricChart(metric, entries, 640, 120)+'</div>' +
-      (entries.length ? ('<div class="metric-stat-row">' +
-        '<span>Min <b>'+minV+' '+escapeHtml(metric.unit)+'</b></span>' +
-        '<span>Max <b>'+maxV+' '+escapeHtml(metric.unit)+'</b></span>' +
-        (change!==null ? '<span>Change <b>'+(change>0?'+':'')+change.toFixed(1)+' '+escapeHtml(metric.unit)+'</b></span>' : '') +
-      '</div>') : '') +
-    '</div>';
-  }
-
-  function renderMeasurementsTab(){
-    var el = document.getElementById('measurementsContainer');
-    if(!el) return;
-    var metrics = activeBodyMeasurements();
-    el.innerHTML = metrics.map(renderMeasurementCard).join('');
-    wireTrackerCardEvents(el);
   }
 
   function renderTrackers(){
@@ -992,42 +824,6 @@
     save();
     closeMetricModal();
     renderAll();
-  }
-
-  // ---------- Month calendar (Calendar tab, pick any past/future date) ----------
-  function renderCalendarMonth(){
-    var grid = document.getElementById('calGrid');
-    var label = document.getElementById('calMonthLabel');
-    if(!grid || !label) return;
-    label.textContent = calMonth.toLocaleDateString(undefined,{month:'long', year:'numeric'});
-
-    var year = calMonth.getFullYear(), month = calMonth.getMonth();
-    var firstOfMonth = new Date(year, month, 1);
-    var gridStart = startOfWeek(firstOfMonth);
-    var today = new Date(); today.setHours(0,0,0,0);
-    var todayStrVal = toDateStr(today);
-    var habits = activeHabits();
-    var metrics = state.metrics.filter(function(m){ return !m.archived; });
-
-    var dowLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    var html = dowLabels.map(function(l){ return '<div class="cal-dow">'+l+'</div>'; }).join('');
-
-    var cursor = new Date(gridStart);
-    for(var i=0; i<42; i++){
-      var ds = toDateStr(cursor);
-      var inMonth = cursor.getMonth() === month;
-      var isToday = ds === todayStrVal;
-      var hasLog = habits.some(function(h){ return getCount(h.id, ds) > 0; }) ||
-        metrics.some(function(m){ return getMetricValue(m.id, ds) !== null; });
-      html += '<div class="cal-day'+(inMonth?'':' other-month')+(isToday?' today':'')+'" data-date="'+ds+'">' +
-        cursor.getDate() + (hasLog ? '<span class="dot"></span>' : '') +
-      '</div>';
-      cursor = addDays(cursor, 1);
-    }
-    grid.innerHTML = html;
-    grid.querySelectorAll('.cal-day[data-date]').forEach(function(cell){
-      cell.addEventListener('click', function(){ openDayModal(cell.getAttribute('data-date')); });
-    });
   }
 
   // ---------- Menstrual cycle ----------
@@ -1300,9 +1096,9 @@
     var count = getCount(habit.id, ds);
     if(count <= 0) return 0;
     var ratio = count / habit.freqTarget;
-    if(ratio < 0.34) return 1;
-    if(ratio < 0.67) return 2;
-    if(ratio < 1) return 3;
+    if(ratio < 0.5) return 1;
+    if(ratio < 1) return 2;
+    if(ratio === 1) return 3;
     return 4;
   }
 
@@ -1334,7 +1130,6 @@
     var streaks = getStreaks(habit);
     var done = count >= habit.freqTarget;
     var yearData = buildYearWeeks();
-    var todayTask = getRotatingTask(habit, new Date());
     return '<div class="habit-card2" data-habit-id="'+habit.id+'">' +
       '<div class="habit-card2-top">' +
         '<div class="card2-left">' +
@@ -1346,7 +1141,6 @@
           '<button class="card2-add '+(done?'done':'')+'" data-log-habit="'+habit.id+'">'+(done?'✓':'+')+'</button>' +
         '</div>' +
       '</div>' +
-      (todayTask ? '<div class="rotation-task">🔀 '+escapeHtml(todayTask)+'</div>' : '') +
       '<div class="mini-heat-wrap">' +
         '<span class="mini-heat-expand" data-expand-habit="'+habit.id+'">⤢</span>' +
         '<div class="mini-heat-grid">'+renderMiniHeatmap(habit, yearData)+'</div>' +
@@ -1437,7 +1231,7 @@
           '<div class="habit-emoji" style="background:'+h.color+'22;">'+h.emoji+'</div>' +
           '<div class="habit-main">' +
             '<div class="habit-name">'+escapeHtml(h.name)+' '+(h.archived?'<span class="archived-tag">Archived</span>':'')+'</div>' +
-            '<div class="habit-meta"><span>'+freqLabel(h)+'</span>'+(h.rotationEnabled?' <span>&middot; 🔀 rotates daily</span>':'')+'</div>' +
+            '<div class="habit-meta"><span>'+freqLabel(h)+'</span></div>' +
           '</div>' +
           '<span class="swipe">›</span>' +
         '</div>' +
@@ -1617,11 +1411,10 @@
     habits.forEach(function(h){
       var count = getCount(h.id, dayModalDate);
       var done = count >= h.freqTarget;
-      var task = getRotatingTask(h, fromDateStr(dayModalDate));
       html += '<div class="habit-row">' +
         '<div class="habit-emoji" style="background:'+h.color+'22;">'+h.emoji+'</div>' +
         '<div class="habit-main"><div class="habit-name">'+escapeHtml(h.name)+'</div>' +
-        '<div class="habit-meta">'+count+'/'+h.freqTarget+' '+unitLabel(h.unit, h.freqTarget)+(task?' &middot; 🔀 '+escapeHtml(task):'')+'</div></div>' +
+        '<div class="habit-meta">'+count+'/'+h.freqTarget+' '+unitLabel(h.unit, h.freqTarget)+'</div></div>' +
         '<button class="check-btn '+(done?'done':'')+'" data-day-log="'+h.id+'">'+(done?'✓':'+')+'</button>' +
       '</div>';
     });
@@ -1665,11 +1458,6 @@
     selectedColor = h ? h.color : COLORS[0];
     document.getElementById('habitDeleteBtn').style.display = h ? 'block' : 'none';
     document.getElementById('suggestRow').style.display = h ? 'none' : 'flex';
-    var rotationOn = h ? !!h.rotationEnabled : false;
-    document.getElementById('habitRotationEnabled').checked = rotationOn;
-    document.getElementById('rotationFields').style.display = rotationOn ? 'block' : 'none';
-    document.getElementById('habitRotationTasks').value = (h && h.rotationTasks) ? h.rotationTasks.join('\n') : '';
-    renderRotationOverridesGrid(h ? h.rotationOverrides : null);
     renderEmojiGrid();
     renderColorGrid();
     document.getElementById('habitModalBackdrop').classList.add('show');
@@ -1710,35 +1498,19 @@
     });
   }
 
-  function readRotationFieldsFromForm(){
-    var enabled = document.getElementById('habitRotationEnabled').checked;
-    if(!enabled) return { rotationEnabled: false, rotationTasks: [], rotationOverrides: {} };
-    var tasks = document.getElementById('habitRotationTasks').value.split('\n')
-      .map(function(t){ return t.trim(); }).filter(function(t){ return t.length > 0; });
-    var overrides = {};
-    document.querySelectorAll('#rotationOverridesGrid [data-override-day]').forEach(function(input){
-      var v = input.value.trim();
-      if(v) overrides[input.getAttribute('data-override-day')] = v;
-    });
-    return { rotationEnabled: tasks.length > 0, rotationTasks: tasks, rotationOverrides: overrides };
-  }
-
   function saveHabit(){
     var name = document.getElementById('habitName').value.trim();
     if(!name){ alert('Please enter a habit name.'); return; }
     var freqType = document.getElementById('habitFreqType').value;
     var target = Math.max(1, parseInt(document.getElementById('habitTarget').value,10) || 1);
     var unit = document.getElementById('habitUnit').value;
-    var rotation = readRotationFieldsFromForm();
     if(editingHabitId){
       var h = state.habits.find(function(x){return x.id===editingHabitId;});
       h.name = name; h.emoji = selectedEmoji; h.color = selectedColor; h.freqType = freqType; h.freqTarget = target; h.unit = unit;
-      h.rotationEnabled = rotation.rotationEnabled; h.rotationTasks = rotation.rotationTasks; h.rotationOverrides = rotation.rotationOverrides;
     } else {
       state.habits.push({
         id: uid(), name: name, emoji: selectedEmoji, color: selectedColor,
-        freqType: freqType, freqTarget: target, unit: unit, createdAt: todayStr(), archived: false,
-        rotationEnabled: rotation.rotationEnabled, rotationTasks: rotation.rotationTasks, rotationOverrides: rotation.rotationOverrides
+        freqType: freqType, freqTarget: target, unit: unit, createdAt: todayStr(), archived: false
       });
     }
     save();
@@ -1781,15 +1553,6 @@
     state.darkMode = !state.darkMode; save(); applyTheme();
   });
 
-  document.getElementById('calPrevBtn').addEventListener('click', function(){
-    calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()-1, 1);
-    renderCalendarMonth();
-  });
-  document.getElementById('calNextBtn').addEventListener('click', function(){
-    calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+1, 1);
-    renderCalendarMonth();
-  });
-
   document.getElementById('addHabitFab').addEventListener('click', function(e){
     e.stopPropagation();
     var menu = document.getElementById('addMenu');
@@ -1813,12 +1576,6 @@
   document.getElementById('habitCancelBtn').addEventListener('click', closeHabitModal);
   document.getElementById('habitSaveBtn').addEventListener('click', saveHabit);
   document.getElementById('habitDeleteBtn').addEventListener('click', deleteHabit);
-  document.getElementById('habitRotationEnabled').addEventListener('change', function(){
-    document.getElementById('rotationFields').style.display = this.checked ? 'block' : 'none';
-    if(this.checked && !document.getElementById('rotationOverridesGrid').innerHTML){
-      renderRotationOverridesGrid(null);
-    }
-  });
   document.getElementById('habitModalBackdrop').addEventListener('click', function(e){
     if(e.target === this) closeHabitModal();
   });
@@ -1834,15 +1591,6 @@
     document.getElementById('dayModalBackdrop').classList.remove('show');
   });
   document.getElementById('dayModalBackdrop').addEventListener('click', function(e){
-    if(e.target === this) this.classList.remove('show');
-  });
-
-  document.getElementById('inspBtn').addEventListener('click', openInspModal);
-  document.getElementById('inspShuffleBtn').addEventListener('click', showRandomInsp);
-  document.getElementById('inspCloseBtn').addEventListener('click', function(){
-    document.getElementById('inspModalBackdrop').classList.remove('show');
-  });
-  document.getElementById('inspModalBackdrop').addEventListener('click', function(e){
     if(e.target === this) this.classList.remove('show');
   });
 
@@ -1886,7 +1634,6 @@
   });
 
   // ---------- Init ----------
-  ensureBodyMeasurements();
   renderSuggestRow();
   applyTheme();
   renderAll();
