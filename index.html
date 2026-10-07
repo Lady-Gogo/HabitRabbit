@@ -285,6 +285,16 @@
   <section class="view" id="view-habits">
     <div id="habitsList"></div>
     <div id="metricsListSection"></div>
+
+    <div class="card" style="margin-top:14px;">
+      <h3 style="margin:0 0 6px;font-size:16px;">Backup</h3>
+      <div class="habit-meta" id="backupStatus" style="margin:0 0 10px;">No backup saved yet.</div>
+      <div class="row2">
+        <button class="btn primary" id="exportBtn">Export backup</button>
+        <button class="btn secondary" id="importBtn">Import backup</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
+    </div>
   </section>
 
   <section class="view" id="view-measurements">
@@ -1834,8 +1844,68 @@
     renderCycleHabitGrid();
   });
 
+  // ---------- Backup / restore ----------
+  function updateBackupStatus(){
+    var el = document.getElementById('backupStatus');
+    if(!el) return;
+    el.textContent = state.lastBackup ? ('Last backup: ' + state.lastBackup) : 'No backup saved yet. Export one to keep your entries safe.';
+  }
+  document.getElementById('exportBtn').addEventListener('click', function(){
+    state.lastBackup = todayStr();
+    save();
+    var blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'habitrabbit-backup-' + todayStr() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    updateBackupStatus();
+  });
+  document.getElementById('importBtn').addEventListener('click', function(){
+    document.getElementById('importFile').click();
+  });
+  document.getElementById('importFile').addEventListener('change', function(){
+    var file = this.files && this.files[0];
+    var input = this;
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var parsed = JSON.parse(reader.result);
+        if(!parsed || !Array.isArray(parsed.habits) || typeof parsed.logs !== 'object'){
+          alert('That file does not look like a HabitRabbit backup.');
+          return;
+        }
+        if(!confirm('Replace everything currently in the app with this backup?')) return;
+        if(parsed.cycle === undefined) parsed.cycle = null;
+        if(!Array.isArray(parsed.metrics)) parsed.metrics = [];
+        if(!parsed.metricLogs) parsed.metricLogs = {};
+        state = parsed;
+        save();
+        ensureBodyMeasurements();
+        applyTheme();
+        renderAll();
+        updateBackupStatus();
+        alert('Backup restored.');
+      }catch(e){
+        alert('Could not read that file.');
+      }
+      input.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  // Ask the browser to keep this app's data from being cleared automatically.
+  if(navigator.storage && navigator.storage.persist){
+    navigator.storage.persist().catch(function(){});
+  }
+
   // ---------- Init ----------
   ensureBodyMeasurements();
+  updateBackupStatus();
   renderSuggestRow();
   applyTheme();
   renderAll();
